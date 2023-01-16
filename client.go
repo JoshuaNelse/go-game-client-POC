@@ -9,7 +9,6 @@ import (
 	"os/signal"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 )
 
@@ -19,7 +18,6 @@ func main() {
 	fmt.Println("Hello, this is the POC game client.")
 	flag.Parse()
 	log.SetFlags(0)
-	clientId := uuid.New()
 
 	interrupt := make(chan os.Signal, 1)
 	signal.Notify(interrupt, os.Interrupt)
@@ -42,7 +40,7 @@ func main() {
 		for {
 			_, message, err := connection.ReadMessage()
 			if err != nil {
-				log.Println("Websocker Read Error: ", err)
+				log.Println("Websocket Closed: ", err)
 				return
 			}
 			log.Printf("recv: %s", message)
@@ -57,11 +55,18 @@ func main() {
 		case <-done:
 			return
 		case t := <-ticker.C:
-			message := []byte("ClientId: " + clientId.String() + " Time: " + t.String())
+			message := []byte(t.String())
 			err := connection.WriteMessage(websocket.TextMessage, message)
 			if err != nil {
 				log.Println("Websocket Write Error: ", err)
-				return
+				if ce, ok := err.(*websocket.CloseError); ok {
+					switch ce.Code {
+					case websocket.CloseNormalClosure:
+						log.Println("Websocket Closed By Client - exiting")
+						return
+					}
+				}
+
 			}
 		case <-interrupt:
 			log.Println("Interupt")
