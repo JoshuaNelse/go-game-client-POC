@@ -1,0 +1,6 @@
+{
+    "gameServer": {
+        "host": "localhost:8080",
+        "path": "/game"
+    }
+}
